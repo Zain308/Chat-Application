@@ -22,7 +22,6 @@ export const App = () => {
         navigate("/login");
       })
       .finally(() => {
-        // Apply theme to document root for Tailwind/DaisyUI v4/v5
         document.documentElement.setAttribute("data-theme", theme);
       });
   }, [theme, navigate, checkAuth]);
@@ -42,12 +41,22 @@ export const App = () => {
     <div data-theme={theme}>
       <Navbar />
       <Routes>
-      <Route path="/" element={authUser ? <HomePage /> : <Navigate to="/login" />} />
-  <Route path="/signup" element={!authUser ? <SignUpPage /> : <Navigate to="/" />} />
-  <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
+        {/* Root path (/) redirects to HomePage if authenticated */}
+        <Route
+          path="/"
+          element={authUser ? <HomePage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/HomePage"
+          element={authUser ? <HomePage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/signup"
+          element={!authUser ? <SignUpPage /> : <Navigate to="/" />}
+        />
         <Route
           path="/login"
-          element={!authUser ? <LoginPage /> : <Navigate to="/HomePage" />}
+          element={!authUser ? <LoginPage /> : <Navigate to="/" />}
         />
         <Route
           path="/settings"
