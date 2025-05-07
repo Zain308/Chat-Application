@@ -1,86 +1,124 @@
 import React from 'react';
-import { Users, Loader } from 'lucide-react';
+import { Users, Loader, AlertTriangle } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 
 export default function Sidebar() {
-  const { users, getUsers, isUsersLoading, selectedUser, setSelectedUser } = useChatStore();
+  const { users = null, getUsers, isUsersLoading, selectedUser, setSelectedUser, error } = useChatStore();
 
+  // Fetch users when the component mounts
   React.useEffect(() => {
-    getUsers();
-  }, [getUsers]);
+    if (!users && !isUsersLoading && !error) {
+      console.log('Fetching users...');
+      getUsers(); // Call getUsers to fetch users from the database
+    }
+  }, [users, isUsersLoading, error, getUsers]);
+
+  // Debug users and error
+  React.useEffect(() => {
+    console.log('Raw users:', users);
+    console.log('Error:', error);
+    console.log('Loading state:', isUsersLoading);
+  }, [users, error, isUsersLoading]);
 
   return (
-    <aside className="h-full w-64 border-r border-base-300 flex flex-col">
+    <div className="w-72 h-full border-r border-base-300 bg-base-100 flex flex-col">
       {/* Header */}
-      <div className="border-b border-base-300 p-4">
+      <div className="p-4 border-b border-base-300">
         <div className="flex items-center gap-2">
-          <Users className="w-5 h-5" />
+          <Users className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">Contacts</h2>
+          <span className="badge badge-neutral ml-auto">
+            {users?.filter((u) => u?.online === true).length || 0}/{users?.length || 0} online
+          </span>
         </div>
       </div>
 
-      {/* User List */}
-      <div className="flex-1 overflow-y-auto p-2">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
         {isUsersLoading ? (
-          <div className="flex flex-col gap-3 p-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="skeleton rounded-full h-10 w-10" />
-                <div className="hidden md:block flex-1 space-y-2">
-                  <div className="skeleton h-4 w-3/4" />
-                  <div className="skeleton h-3 w-1/2" />
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col items-center justify-center h-full space-y-2">
+            <Loader className="w-6 h-6 animate-spin text-primary" />
+            <p className="text-sm">Loading contacts...</p>
           </div>
-        ) : users.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <Users className="w-8 h-8 mb-2" />
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-full p-4 text-center text-error">
+            <AlertTriangle className="w-10 h-10 mb-2" />
+            <p>Failed to load contacts</p>
+            <p className="text-sm opacity-70 mt-1">{error}</p>
+            <button
+              onClick={() => getUsers()}
+              className="mt-2 btn btn-sm btn-primary"
+            >
+              Retry
+            </button>
+          </div>
+        ) : !users || users.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+            <Users className="w-10 h-10 mb-2 opacity-30" />
             <p>No contacts available</p>
+            <p className="text-sm opacity-70 mt-1">When contacts appear, they'll show up here</p>
           </div>
         ) : (
-          <ul className="space-y-1">
-            {users.map(user => (
-              <li
-                key={user._id}
-                onClick={() => setSelectedUser(user)}
-                className={`
-                  flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors
-                  ${selectedUser?._id === user._id 
-                    ? 'bg-primary/10 text-primary' 
-                    : 'hover:bg-base-200'
-                  }
-                `}
-              >
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-base-300 flex items-center justify-center">
-                    {user.avatar ? (
-                      <img 
-                        src={user.avatar} 
-                        alt={user.username} 
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg font-medium">
-                        {user.username.charAt(0).toUpperCase()}
-                      </span>
+          <div className="space-y-1 p-2">
+            {users
+              .filter((user) => user && user._id && user.username)
+              .map((user) => {
+                const username = user.username;
+                const firstLetter = username.charAt(0).toUpperCase();
+
+                return (
+                  <button
+                    key={user._id}
+                    onClick={() => {
+                      console.log('Selecting user:', user);
+                      setSelectedUser(user);
+                    }}
+                    className={`w-full flex items-center gap-3 p-3 rounded-btn transition-all ${
+                      selectedUser?._id === user._id
+                        ? 'bg-primary/10 text-primary-content'
+                        : 'hover:bg-base-200'
+                    }`}
+                  >
+                    {/* Avatar */}
+                    <div className="avatar placeholder">
+                      <div className="w-10 h-10 rounded-full bg-neutral text-neutral-content">
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt={username}
+                            onError={(e) => {
+                              e.currentTarget.src = '';
+                              e.currentTarget.parentElement.classList.add('bg-neutral', 'text-neutral-content');
+                            }}
+                          />
+                        ) : (
+                          <span>{firstLetter}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* User info */}
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="font-medium truncate">{username}</p>
+                      <p
+                        className={`text-xs truncate ${
+                          user.online ? 'text-success' : 'text-base-content/50'
+                        }`}
+                      >
+                        {user.online ? 'Online' : 'Offline'}
+                      </p>
+                    </div>
+
+                    {/* Active indicator */}
+                    {selectedUser?._id === user._id && (
+                      <div className="w-2 h-2 rounded-full bg-primary ml-auto"></div>
                     )}
-                  </div>
-                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white 
-                    ${user.online ? 'bg-green-500' : 'bg-gray-400'}`}
-                  />
-                </div>
-                <div className="hidden md:block overflow-hidden">
-                  <h3 className="font-medium truncate">{user.username}</h3>
-                  <p className="text-sm text-gray-500 truncate">
-                    {user.online ? 'Online' : 'Offline'}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  </button>
+                );
+              })}
+          </div>
         )}
       </div>
-    </aside>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Camera, CircleDot, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -7,7 +7,18 @@ const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
   const [tempImage, setTempImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [theme, setTheme] = useState("dark"); // Default theme
   const fileInputRef = useRef(null);
+
+  // Sync theme with DaisyUI
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
+  // Toggle theme between light and dark
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -17,14 +28,14 @@ const ProfilePage = () => {
     }
 
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!validTypes.includes(file.type)) {
       toast.error("Please select a JPEG, PNG, or WEBP image");
       return;
     }
 
     // Validate file size (2MB limit)
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 2 * 1024 * 1024) {
       toast.error("Image size should be less than 2MB");
       return;
     }
@@ -75,18 +86,29 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black text-gray-200 mt-20">
-      <div className="max-w-md w-full mx-auto p-6 bg-gray-800 rounded-xl shadow-2xl transform transition-all duration-300 hover:shadow-3xl">
-        <h1 className="text-3xl font-bold text-center mb-6 text-white animate-pulse-slow">Your Profile</h1>
+    <div className="min-h-screen flex items-center justify-center bg-base-200 p-4 pt-16">
+      <div className="card w-full max-w-lg bg-base-100 shadow-2xl rounded-2xl overflow-hidden">
+        {/* Card Header */}
+        <div className="bg-primary text-primary-content p-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Your Profile</h1>
+          <button
+            onClick={toggleTheme}
+            className="btn btn-sm btn-ghost"
+            title="Toggle Theme"
+          >
+            {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+          </button>
+        </div>
 
-        {/* Avatar Section */}
-        <div className="flex justify-center mb-8 relative">
-          <div className="relative group">
-            <div className="relative">
+        {/* Card Body */}
+        <div className="p-6 space-y-6">
+          {/* Avatar Section */}
+          <div className="flex justify-center relative">
+            <div className="relative group">
               <img
                 src={getImageSource()}
                 alt="Profile"
-                className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 transition-all duration-300 group-hover:border-blue-700"
+                className="w-28 h-28 rounded-full object-cover border-4 border-primary shadow-md transition-all duration-300 group-hover:border-primary-focus"
                 onError={(e) => {
                   console.error("Image load error, falling back to default");
                   e.target.onerror = null; // Prevent infinite loop
@@ -95,64 +117,66 @@ const ProfilePage = () => {
               />
               {(isUploading || isUpdatingProfile) && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-white" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               )}
+              <label
+                htmlFor="avatar-upload"
+                className={`
+                  absolute bottom-0 right-0
+                  bg-primary text-primary-content p-2 rounded-full
+                  cursor-pointer transition-all duration-300
+                  hover:bg-primary-focus hover:scale-105
+                  ${(isUploading || isUpdatingProfile) ? "opacity-50 pointer-events-none" : ""}
+                `}
+                title="Change profile picture"
+              >
+                <Camera className="w-5 h-5" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="avatar-upload"
+                  className="hidden"
+                  accept="image/jpeg, image/png, image/webp"
+                  onChange={handleImageUpload}
+                  disabled={isUploading || isUpdatingProfile}
+                />
+              </label>
             </div>
-            <label
-              htmlFor="avatar-upload"
-              className={`
-                absolute bottom-0 right-0
-                bg-blue-600 text-white p-2 rounded-full
-                cursor-pointer transition-all duration-300
-                group-hover:bg-blue-700 hover:scale-105
-                ${(isUploading || isUpdatingProfile) ? "opacity-50 pointer-events-none" : ""}
-              `}
-              title="Change profile picture"
-            >
-              <Camera className="w-5 h-5" />
-              <input
-                ref={fileInputRef}
-                type="file"
-                id="avatar-upload"
-                className="hidden"
-                accept="image/jpeg, image/png, image/webp"
-                onChange={handleImageUpload}
-                disabled={isUploading || isUpdatingProfile}
-              />
-            </label>
           </div>
-        </div>
 
-        {/* User Information */}
-        <div className="space-y-6">
-          <div className="flex flex-col items-center">
-            <span className="text-sm text-gray-400 mb-1">Full Name</span>
-            <p className="text-xl font-semibold text-white bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 transition-all duration-200 hover:bg-gray-600">
-              {authUser?.fullName || "Not set"}
-            </p>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-sm text-gray-400 mb-1">Email</span>
-            <p className="text-xl font-semibold text-white bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 transition-all duration-200 hover:bg-gray-600">
-              {authUser?.email || "Not set"}
-            </p>
-          </div>
-        </div>
-
-        {/* Account Information */}
-        <div className="mt-8">
-          <h2 className="text-lg font-medium text-gray-300 mb-4 border-b border-gray-600 pb-2">Account Information</h2>
+          {/* User Information */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-gray-300">
-              <span className="text-sm">Member Since</span>
-              <span className="text-sm font-medium">{formatDate(authUser?.createdAt)}</span>
+            <div className="flex flex-col items-center">
+              <span className="text-sm text-base-content/70 mb-1">Full Name</span>
+              <p className="text-lg font-semibold bg-base-200 px-4 py-2 rounded-lg w-full text-center">
+                {authUser?.fullName || "Not set"}
+              </p>
             </div>
-            <div className="flex items-center justify-between text-gray-300">
-              <span className="text-sm">Account Status</span>
-              <div className="flex items-center gap-2">
-                <CircleDot className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium">Active</span>
+            <div className="flex flex-col items-center">
+              <span className="text-sm text-base-content/70 mb-1">Email</span>
+              <p className="text-lg font-semibold bg-base-200 px-4 py-2 rounded-lg w-full text-center">
+                {authUser?.email || "Not set"}
+              </p>
+            </div>
+          </div>
+
+          {/* Account Information */}
+          <div>
+            <h2 className="text-lg font-medium text-base-content/80 mb-4 border-b border-base-300 pb-2">
+              Account Information
+            </h2>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-base-content/70">Member Since</span>
+                <span className="text-sm font-medium">{formatDate(authUser?.createdAt)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-base-content/70">Account Status</span>
+                <div className="flex items-center gap-2">
+                  <CircleDot className="w-5 h-5 text-success" />
+                  <span className="text-sm font-medium">Active</span>
+                </div>
               </div>
             </div>
           </div>
@@ -161,22 +185,5 @@ const ProfilePage = () => {
     </div>
   );
 };
-
-// Add custom animation
-const styles = `
-  @keyframes pulse-slow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.9; }
-  }
-  .animate-pulse-slow {
-    animation: pulse-slow 2s infinite;
-  }
-`;
-
-if (typeof document !== "undefined") {
-  const styleSheet = document.createElement("style");
-  styleSheet.textContent = styles;
-  document.head.appendChild(styleSheet);
-}
 
 export default ProfilePage;
