@@ -118,7 +118,7 @@ const SignUpPage = () => {
     try {
       await signup(formData);
       showSuccessToast("Account created successfully!");
-      navigate("/");
+      navigate("/login");
     } catch (error) {
       showErrorToast(error.response?.data?.message || "Signup failed");
       console.error("Signup error:", error);
